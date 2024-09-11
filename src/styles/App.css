@@ -1,0 +1,45 @@
+.navbarStyle {
+    padding: 0.5rem 1rem !important;
+}
+
+.navbarButton {
+    color: #fff !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.iconText {
+    margin: 0 0.5rem;
+}
+
+.navbarStyle {
+    padding: 0.5rem 1rem;
+}
+
+.navbarButton {
+    color: #fff !important;
+}
+
+.user-info-div,.messsages-div {
+  float:left;
+  padding:12px;
+  width:100%
+}
+
+.border-div{
+  margin:12px;
+  border:1px solid #000;
+  width:80%;
+  height:200px;
+}
+
+.message-div {
+  border:1px solid #ccc;
+  width:200px;
+  margin:12px;
+  padding:12px;
+}
+
+.signInButton {
+    margin: 1rem;
+}
+
