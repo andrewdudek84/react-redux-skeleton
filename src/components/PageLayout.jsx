@@ -2,7 +2,7 @@ import { AuthenticatedTemplate } from '@azure/msal-react';
 import { NavigationBar } from './NavigationBar.jsx';
 import Messages from "./GlobalState.js";
 
-import { models, Report, Embed, service, Page } from 'powerbi-client';
+import { models } from 'powerbi-client';
 import { PowerBIEmbed } from 'powerbi-client-react';
 import 'powerbi-report-authoring';
 import { Provider } from "react-redux";

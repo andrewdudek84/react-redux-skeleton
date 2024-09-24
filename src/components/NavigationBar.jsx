@@ -13,16 +13,11 @@ export const NavigationBar = () => {
         instance.logoutRedirect().catch((error) => console.log(error));
     };
 
-    /**
-     * Most applications will need to conditionally render certain components based on whether a user is signed in or not.
-     * msal-react provides 2 easy ways to do this. AuthenticatedTemplate and UnauthenticatedTemplate components will
-     * only render their children if a user is authenticated or unauthenticated, respectively.
-     */
     return (
         <>
             <Navbar bg="primary" variant="dark" className="navbarStyle">
                 <a className="navbar-brand" href="/">
-                    MSFT / NVIDIA Kit App Streaming + Power BI
+                    MSFT / NVIDIA Kit App Streaming / PBI Starter App
                 </a>
                 <AuthenticatedTemplate>
                     <div className="collapse navbar-collapse justify-content-end">
