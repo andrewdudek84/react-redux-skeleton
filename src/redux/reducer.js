@@ -1,23 +1,41 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = [];
+const initialState ={  
+    "USDStorageURL":"https://blobstorage.azurewebsites.net",
+    "USDStorageToken":"",
+    "currentStreamState":{
+        "state":"intialize",
+        "message":"please wait..."
+    },
+    "selectedAssets": [],
+    "assetAnnotations": [{
+        "id":"asset2",
+        "status":"warning",
+        "state":"on",
+        "message":"Something is wrong with this machine.",
+        "icon":""
+    }]
+};
 
-const addMessageBusReducer = createSlice({
-  name: "messagebus",
+const addGlobalStateBusReducer = createSlice({
+  name: "global_state",
   initialState,
   reducers: {
-    addMessage: (state, action) => {
-      state.push(action.payload);
+    selectAsset: (state=initialState, action) => {
+      if(!state.selectedAssets.includes(action.payload)){
+        state.selectedAssets.push(action.payload)
+      }
       return state;
     },
-    removeMessage: (state, action) => {
-      return state.filter((item) => item.id !== action.payload);
+    unselectAsset: (state=initialState, action) => {
+      state.selectedAssets=state.selectedAssets.filter((item) => item !== action.payload);
+      return state;
     }
   },
 });
 
 export const {
-  addMessage,
-  removeMessage
-} = addMessageBusReducer.actions;
-export const reducer = addMessageBusReducer.reducer;
+  selectAsset,
+  unselectAsset
+} = addGlobalStateBusReducer.actions;
+export const reducer = addGlobalStateBusReducer.reducer;

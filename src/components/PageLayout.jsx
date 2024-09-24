@@ -1,8 +1,7 @@
 import { AuthenticatedTemplate } from '@azure/msal-react';
 import { NavigationBar } from './NavigationBar.jsx';
-import Messages from "./Messages.js";
+import Messages from "./GlobalState.js";
 
-import React, { useState, useEffect } from 'react';
 import { models, Report, Embed, service, Page } from 'powerbi-client';
 import { PowerBIEmbed } from 'powerbi-client-react';
 import 'powerbi-report-authoring';
@@ -21,6 +20,9 @@ export const PageLayout = (props) => {
             
                     <div className="messsages-div">
 
+                        <h2>Redux - Global State</h2>
+                        <Messages />
+
                         <h2>Power BI Embedded</h2>
                         <div className="border-div">
                         <PowerBIEmbed
@@ -38,10 +40,6 @@ export const PageLayout = (props) => {
                         <div className="border-div">
 
                         </div>
-                
-                        <h2>Redux Message Bus</h2>
-                        <Messages />
-
                     </div>
 
                 </Provider>
