@@ -1,7 +1,5 @@
 import { MsalProvider, AuthenticatedTemplate, useMsal, UnauthenticatedTemplate } from '@azure/msal-react';
-import { Container, Button } from 'react-bootstrap';
 import { PageLayout } from './components/PageLayout';
-import { IdTokenData } from './components/DataDisplay';
 import { loginRequest } from './authConfig';
 import { Provider } from "react-redux";
 import store from "./redux/store";
@@ -21,26 +19,30 @@ const MainContent = () => {
             .catch((error) => console.log(error));
     };
     return (
-        <div className="App">
-            <AuthenticatedTemplate>
-                {activeAccount ? (
-                    <IdTokenData idTokenClaims={activeAccount.idTokenClaims} />
-                ) : null}
-            </AuthenticatedTemplate>
-        </div>
+        <div className="App"></div>
     );
 };
 
+
 const App = ({ instance }) => {
+
+    const handleRedirect = () => {
+        instance
+            .loginRedirect({
+                ...loginRequest,
+                prompt: 'create',
+            })
+            .catch((error) => console.log(error));
+    };
     return (
         <Provider store={store}>
             <MsalProvider instance={instance}>
                 <PageLayout>
-                    <MainContent />
+                    <MainContent/>
                 </PageLayout>
             </MsalProvider>
         </Provider>
     );
 };
 
-export default App;
+export default App

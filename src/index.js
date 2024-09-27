@@ -31,3 +31,5 @@ const root = createRoot(document.getElementById('root'));
 root.render(
     <App instance={msalInstance}/>
 );
+
+export default msalInstance
