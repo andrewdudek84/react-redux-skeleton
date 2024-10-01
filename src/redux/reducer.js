@@ -23,7 +23,7 @@ const initialState = {
       "message": "please wait..."
     },
   },
-  "selectedAssetIds": ["asset1", "asset3"],
+  "selectedAssetIds": ["asset1", "asset2"],
   "assetAnnotations": [{
     "id": "asset2",
     "status": "warning",
@@ -54,6 +54,10 @@ const addGlobalStateReducer = createSlice({
       state.selectedAssetIds = state.selectedAssetIds.filter((item) => item !== action.payload);
       return state;
     },
+    unselectAllAsset: (state = initialState, action) => {
+      state.selectedAssetIds = [];
+      return state;
+    },
     addAnnotation: (state = initialState, action) => {
       if (!state.assetAnnotations.some(item => item.id === action.payload.id)) {
         state.assetAnnotations.push(action.payload)
@@ -82,6 +86,7 @@ const addGlobalStateReducer = createSlice({
 export const {
   selectAsset,
   unselectAsset,
+  unselectAllAsset,
   addAnnotation,
   removeAnnotation,
   updateCurrentStreamState,

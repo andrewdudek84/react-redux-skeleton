@@ -1,7 +1,7 @@
 import React, {useEffect,useState } from "react";
 import { useMsal } from '@azure/msal-react';
 import { connect } from "react-redux";
-import { selectAsset,unselectAsset,addAnnotation,removeAnnotation,updateCurrentStreamState,updateUSDStorage,updateMSALInfo} from "../redux/reducer";
+import { selectAsset,unselectAsset,unselectAllAsset,addAnnotation,removeAnnotation,updateCurrentStreamState,updateUSDStorage,updateMSALInfo} from "../redux/reducer";
 import SelectedAsset from "./SelectedAsset";
 import AssetAnnotation from "./AssetAnnotation";
 
@@ -21,6 +21,7 @@ const mapDispatchToProps = (dispatch) => {
   return {
     selectAsset: (obj) => dispatch(selectAsset(obj)),
     unselectAsset: (obj) => dispatch(unselectAsset(obj)),
+    unselectAllAsset: (obj) => dispatch(unselectAllAsset(obj)),
     addAnnotation: (obj) => dispatch(addAnnotation(obj)),
     removeAnnotation: (obj) => dispatch(removeAnnotation(obj)),
     updateCurrentStreamState: (obj) => dispatch(updateCurrentStreamState(obj)),
@@ -38,6 +39,12 @@ const GlobalState = (props) => {
   const selectAsset = (asset) => {
     props.selectAsset(asset);
   };
+
+  const unselectAllAsset = () => {
+    props.unselectAllAsset();
+  };
+
+  
 
   const addAnnotation = (asset) => {
     props.addAnnotation(asset);
@@ -70,6 +77,8 @@ const GlobalState = (props) => {
     setBusy(false)
   };
 
+
+
   useEffect(() => {
       updateUSDStorage({
         "url": "http://storage...",
@@ -79,10 +88,25 @@ const GlobalState = (props) => {
         "userName": activeAccount.name,
         "authToken": activeAccount.idToken
       })
+      
+
+
       setBusy(true)
       setToken()
     },[]);
 
+
+   const basicFilter = {
+      $schema: "http://powerbi.com/product/schema#basic",
+      target: {
+        table: "Assets",
+        column: "Asset"
+      },
+      operator: "In",
+      values: props.state.selectedAssetIds.length>0? props.state.selectedAssetIds:["Select all"],
+      filterType: models.FilterType.BasicFilter
+    };
+    
   return (
     <div>
 
@@ -97,18 +121,129 @@ const GlobalState = (props) => {
       <button onClick={() => selectAsset("asset3")}>Select asset3</button>
       <br />
 
-        <ul>
-            {props.state.selectedAssetIds.length > 0
-              ? props.state.selectedAssetIds.map((item) => {
-                  return (
-                    <SelectedAsset
-                      item={item}
-                      unselectAsset={props.unselectAsset}
+      <ul>
+          {props.state.selectedAssetIds.length > 0
+            ? props.state.selectedAssetIds.map((item) => {
+                return (
+                  <SelectedAsset
+                    item={item}
+                    unselectAsset={props.unselectAsset}
+                  />
+                );
+              })
+            : null}
+      </ul>
+     
+
+       
+      <br/><br/>
+      <h2>Power BI Embedded</h2>
+
+        {isBusy ? (
+                <div className="border-div">Loading</div>
+              ) : (
+
+                <div className="border-div"> 
+                    <PowerBIEmbed
+                        embedConfig = {{
+                            type: 'report',   // Since we are reporting a BI report, set the type to report
+                            id: '6e9ad4fb-4e8a-4a92-bfa4-95c4198e88ae', // Add the report Id here
+                            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=6e9ad4fb-4e8a-4a92-bfa4-95c4198e88ae&ctid=d2e5ac16-7068-4b2d-995b-3924af59cc7a', // Add the embed url here
+                            accessToken:token,
+                            tokenType: models.TokenType.Aad, // Since we are using an Azure Active Directory access token, set the token type to Aad
+                            filters:[basicFilter],
+                            settings: {
+                                panes: {
+                                    filters: {
+                                        expanded: false,
+                                        visible: true
+                                    },
+                                    pageNavigation: {
+                                      visible: false
+                                    }
+                                },
+                                background: models.BackgroundType.Transparent,
+                            }
+                        }}
+
+                        eventHandlers = {
+                            new Map([
+                                ['loaded', function () {
+
+                                  window.report.on('filtersApplied', (event) => {
+                                    alert('Filters applied:', event.detail);
+                                  });
+                          
+                                  window.report.on('dataSelected', (event) => {
+                                    
+                                    const value = event?.detail?.dataPoints?.[0]?.identity?.[0]?.equals;
+                                    if (value) {
+                                      unselectAllAsset()
+                                      selectAsset(value)
+                                    }
+                                     
+                                  });
+                                  //window.report.getPages().then(pages => {
+                                    //pages[0].getVisuals().then(visuals => {
+                                       // const slicers = visuals.find(visual => visual.type === 'slicer');
+                                        //for (let x = 0; x < visuals.length; x++) {
+                                        //  if (visuals[x].type === 'slicer' && visuals[x].title=='asset') {
+                                              
+                                         //     visuals[x].setSlicerState({ 'filters': [basicFilter] });
+      
+                                        //  }
+                                        //}
+                                    //});
+                                  //});
+                                  
+
+                                 // identity: A unique identifier for the data point.
+//values: The values associated with the data point.
+//highlight: Indicates whether the data point is highlighted.
+//category: The category to which the data point belongs.
+//series: The series to which the data point belongs.
+//measure: The measure associated with the data point.
+//color: The color of the data point.
+//tooltip: The tooltip information for the data point.
+                                  //loaded,saved,rendered,saveAsTriggered,error,dataSelected,buttonClicked,info,filtersApplied,pageChanged,commandTriggered,swipeStart,swipeEnd,bookmarkApplied,dataHyperlinkClicked,visualRendered,visualClicked,selectionChanged,renderingStarted,blur
+
+                                }],
+                                ['rendered', function () {console.log('Report rendered');}],
+                                ['error', function (event) {console.log(event.detail);}],
+                                ['visualClicked', () => console.log('visual clicked')],
+                                ['pageChanged', (event) => console.log(event)]
+        
+
+                                
+                            ])
+                        }
+
+                        cssClassName = { "bi-embedded" }
+
+                        getEmbeddedComponent = { (embeddedReport) => {
+                            window.report = embeddedReport; 
+                            
+                        }}
                     />
-                  );
-                })
-              : null}
-        </ul>
+
+
+
+                </div>
+              )};
+ 
+
+        
+
+        <h2>Kit App Streaming</h2>
+        <div className="border-div">
+          <Window/>
+        </div>
+
+        <h2>AIO</h2>
+        <div className="border-div">
+
+        </div>
+
         <br />
 
         <button onClick={() => addAnnotation({
@@ -121,7 +256,7 @@ const GlobalState = (props) => {
         })}>Add warning to asset1</button>
 
 
-       <button onClick={() => addAnnotation({
+        <button onClick={() => addAnnotation({
             "id":2,
             "asset":"asset2",
             "status":"warning",
@@ -151,68 +286,9 @@ const GlobalState = (props) => {
             "state":"streaming",
             "message":""
         })}>Update Current Streaming State to Stremaing</button>
-
-       
-<br/><br/>
-<h2>Power BI Embedded</h2>
-
-        {isBusy ? (
-                <div className="border-div">Loading</div>
-              ) : (
-
-                <div className="border-div"> 
-                    <span>{token}</span>
-                    <PowerBIEmbed
-                        embedConfig = {{
-                            type: 'report',   // Since we are reporting a BI report, set the type to report
-                            id: '7a452715-3141-498a-8e7c-104ef8f80438', // Add the report Id here
-                            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=7a452715-3141-498a-8e7c-104ef8f80438&ctid=d2e5ac16-7068-4b2d-995b-3924af59cc7a', // Add the embed url here
-                            accessToken:token,
-                            tokenType: models.TokenType.Aad, // Since we are using an Azure Active Directory access token, set the token type to Aad
-                            settings: {
-                                panes: {
-                                    filters: {
-                                        expanded: false,
-                                        visible: true
-                                    }
-                                },
-                                background: models.BackgroundType.Transparent,
-                            }
-                        }}
-
-                        eventHandlers = {
-                            new Map([
-                                ['loaded', function () {console.log('Report loaded');}],
-                                ['rendered', function () {console.log('Report rendered');}],
-                                ['error', function (event) {console.log(event.detail);}],
-                                ['visualClicked', () => console.log('visual clicked')],
-                                ['pageChanged', (event) => console.log(event)],
-                            ])
-                        }
-
-                        cssClassName = { "bi-embedded" }
-
-                        getEmbeddedComponent = { (embeddedReport) => {
-                            window.report = embeddedReport; // save report in window object
-                        }}
-                    />
-
-                </div>
-              )};
- 
-
-        <h2>AIO</h2>
-        <div className="border-div">
-
-        </div>
-
-        <h2>Kit App Streaming</h2>
-        <div className="border-div">
-          <Window/>
-        </div>
-      
-    </div>
-  );
-};
+              
+            </div>
+          );
+        };
 
 export default connect(mapStateToProps, mapDispatchToProps)(GlobalState);

@@ -9,73 +9,75 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  */
-import React from 'react';
+import React, { Component, createRef } from 'react';
 import './Window.css';
-import AppStream from './AppStream'; 
-import StreamConfig from './stream.config.json';
-import USDAsset from './USDAsset'; 
-import USDStage from './USDStage'; 
+import AppStream from './AppStream'; // Ensure .tsx extension if needed
+import StreamConfig from '../stream.config.json';
+import USDAsset from "./USDAsset";
+import USDStage from "./USDStage";
 
-    
-class Window extends React.Component {
+export default class Window extends Component {
     constructor(props) {
-            super(props);
-            const usdAssets = [
-                { name: "Sample 1", url: "./samples/stage01.usd" },
-                { name: "Sample 2", url: "./samples/stage02.usd" },
-                { name: "PAL POC", url: "./samples/stage_pal_poc.usd" },
-            ];
-            
-            this.state = {
-                selectedUSDPrims: new Set(),
-                usdPrims: [],
-                loadingProgress: 0,
-                loadingActivity: '',
-                gfnUser: null,
-                streamReady: false,
-                usdAssets: usdAssets,
-                selectedUSDAsset: usdAssets[2],
-                isLoadingAsset: false
-            };
-            this.usdStageRef = React.createRef();
-            
-           
-        }
+        super(props);
 
-    /**
-     * @function _toggleLoadingState
-     *
-     * Toggle state of loading asset indicator.
-     */
-    _toggleLoadingState(isLoading) {
-        console.log(`Setting loading indicator visibility to: ${isLoading ? "visible" : "hidden"}.`);
-        this.setState({ loadingProgress: 0 });
-        this.setState({ isLoadingAsset: isLoading });
+        // list of selectable USD assets
+        const usdAssets = [
+            { name: "Sample 1", url: "./samples/stage01.usd" },
+            { name: "Sample 2", url: "./samples/stage02.usd" }
+        ];
+
+        this.state = {
+            usdAssets: usdAssets,
+            selectedUSDAsset: usdAssets[0],
+            usdPrims: [],
+            selectedUSDPrims: new Set(),
+            isKitReady: false,
+            showStream: false,
+            showUI: false,
+            loadingText: StreamConfig.source === "gfn" ? "Log in to GeForce NOW to view stream" : "Waiting for stream to begin"
+        };
+
+        this.usdStageRef = createRef();
     }
 
-    /**
-     * @function _onStreamStarted
-     *
-     * Sends a request to open an asset. If the stream is from GDN it is assumed that the
-     * application will automatically load an asset on startup so a request to open a stage
-     * is not sent. Instead, we wait for the streamed application to send a
-     * openedStageResult message.
-     */
-    _onStreamStarted() {
-        
-        if (StreamConfig.source === 'local') {
-            this._openSelectedAsset();
-        }
+    _queryLoadingState() {
+        const message = {
+            event_type: "loadingStateQuery",
+            payload: {}
+        };
+        AppStream.sendMessage(JSON.stringify(message));
     }
 
-    
-    /**
-    * @function _openSelectedAsset
-    *
-    * Send a request to load an asset.
-    */
-    _openSelectedAsset () {
-        this._toggleLoadingState(true);
+    async _pollForKitReady() {
+        if (this.state.isKitReady === true) return
+
+        console.info("polling Kit availability")
+        this._queryLoadingState()
+        setTimeout(() => this._pollForKitReady(), 3000); // Poll every 3 seconds
+    }
+
+    _getAsset(path) {
+        if (!path)
+            return { name: "", url: "" }
+
+        // returns the file name from a path
+        const getFileNameFromPath = (path) => path.split(/[/\\]/).pop();
+
+        for (const asset of this.state.usdAssets) {
+            if (getFileNameFromPath(asset.url) === getFileNameFromPath(path))
+                return asset
+        }
+
+        return { name: "", url: "" }
+    }
+
+    _onLoggedIn(userId) {
+        console.info(`Logged in to GeForce NOW as ${userId}`)
+        this.setState({ loadingText: "Waiting for stream to begin" })
+    }
+
+    _openSelectedAsset() {
+        this.setState({ loadingText: "Loading Asset...", showStream: false })
         this.setState({ usdPrims: [], selectedUSDPrims: new Set() });
         this.usdStageRef.current?.resetExpandedIds();
         console.log(`Sending request to open asset: ${this.state.selectedUSDAsset.url}.`);
@@ -88,11 +90,6 @@ class Window extends React.Component {
         AppStream.sendMessage(JSON.stringify(message));
     }
 
-    /**
-     * @function _onSelectUSDAsset
-     *
-     * React to user selecting an asset in the USDAsset selector.
-     */
     _onSelectUSDAsset(usdAsset) {
         console.log(`Asset selected: ${usdAsset.name}.`);
         this.setState({ selectedUSDAsset: usdAsset }, () => {
@@ -100,13 +97,7 @@ class Window extends React.Component {
         });
     }
 
-    /**
-     * @function _getChildren
-     *
-     * Send a request for the child prims of the given usdPrim.
-     */
     _getChildren(usdPrim = null) {
-        // Get geometry prims. If no usdPrim is specified then get children of /World.
         console.log(`Requesting children for path: ${usdPrim ? usdPrim.path : '/World'}.`);
         const message = {
             event_type: "getChildrenRequest",
@@ -118,11 +109,6 @@ class Window extends React.Component {
         AppStream.sendMessage(JSON.stringify(message));
     }
 
-    /**
-     * @function _makePickable
-     *
-     * Send a request for the child prims of the given usdPrim.
-     */
     _makePickable(usdPrims) {
         const paths = usdPrims.map(prim => prim.path);
         console.log(`Sending request to make prims pickable: ${paths}.`);
@@ -130,18 +116,11 @@ class Window extends React.Component {
             event_type: "makePrimsPickable",
             payload: {
                 paths: paths,
-                criteria: "alpine_data_lake_id"
             }
         };
         AppStream.sendMessage(JSON.stringify(message));
     }
 
-    /**
-     * @function _onSelectUSDPrims
-     *
-     * React to user selecting items in the USDStage list.
-     * Sends a request to change the selection in the USD Stage.
-     */
     _onSelectUSDPrims(selectedUsdPrims) {
         console.log(`Sending request to select: ${selectedUsdPrims}.`);
         this.setState({ selectedUSDPrims: selectedUsdPrims });
@@ -149,8 +128,7 @@ class Window extends React.Component {
         const message = {
             event_type: "selectPrimsRequest",
             payload: {
-                paths: paths,
-                criteria: "alpine_data_lake_id"
+                paths: paths
             }
         };
         AppStream.sendMessage(JSON.stringify(message));
@@ -158,11 +136,6 @@ class Window extends React.Component {
         selectedUsdPrims.forEach(usdPrim => { this._onFillUSDPrim(usdPrim) });
     }
 
-    /**
-     * @function _onStageReset
-     *
-     * Clears the selection and sends a request to reset the stage to how it was at the time it loaded.
-     */
     _onStageReset() {
         this.setState({ selectedUSDPrims: new Set() });
         const selection_message = {
@@ -180,38 +153,12 @@ class Window extends React.Component {
         AppStream.sendMessage(JSON.stringify(reset_message));
     }
 
-    /**
-     * @function _onStageFrame
-     *
-     * Clears the selection and sends a request to reset the stage to how it was at the time it loaded.
-     */
-    _onStageFrame() {
-        const frame_message = {
-            event_type: "frameSelected",
-            payload: {}
-        };
-        AppStream.sendMessage(JSON.stringify(frame_message));
-    }
-
-    /**
-     * @function _onFillUSDPrim
-     *
-     * If the usdPrim has a children property, a request is sent for its children.
-     * When the streaming app sends an empty children value it is not an array.
-     * When a prim does not have children, the streaming app does not provide a children
-     * property to begin with.
-     */
     _onFillUSDPrim(usdPrim) {
         if (usdPrim !== null && "children" in usdPrim && !Array.isArray(usdPrim.children)) {
             this._getChildren(usdPrim);
         }
     }
 
-    /**
-         * @function _findUSDPrimByPath
-         *
-         * Recursive search for a USDPrimType object by path.
-         */
     _findUSDPrimByPath(path, array = this.state.usdPrims) {
         if (Array.isArray(array)) {
             for (const obj of array) {
@@ -229,49 +176,215 @@ class Window extends React.Component {
         return null;
     }
 
+    _queryLoadingState = () => {
+        const message = {
+            event_type: "loadingStateQuery",
+            payload: {}
+        };
+        AppStream.sendMessage(JSON.stringify(message));
+    };
 
-    /**
-     * @function _handleCustomEvent
-     *
-     * Handle message from stream.
-     */
-    _handleCustomEvent(event) {
-       
+    _pollForKitReady = async () => {
+        if (this.state.isKitReady === true) return;
+
+        console.info("polling Kit availability");
+        this._queryLoadingState();
+        setTimeout(() => this._pollForKitReady(), 3000); // Poll every 3 seconds
+    };
+
+    _getAsset = (path) => {
+        if (!path) return { name: "", url: "" };
+
+        const getFileNameFromPath = (path) => path.split(/[/\\]/).pop();
+
+        for (const asset of this.state.usdAssets) {
+            if (getFileNameFromPath(asset.url) === getFileNameFromPath(path)) return asset;
+        }
+
+        return { name: "", url: "" };
+    };
+
+    _onLoggedIn = (userId) => {
+        console.info(`Logged in to GeForce NOW as ${userId}`);
+        this.setState({ ...this.state, loadingText: "Waiting for stream to begin" });
+    };
+
+    _openSelectedAsset = () => {
+        this.setState({ ...this.state, loadingText: "Loading Asset...", showStream: false });
+        this.setState({ ...this.state, usdPrims: [], selectedUSDPrims: new Set() });
+        this.usdStageRef.current?.resetExpandedIds();
+        console.log(`Sending request to open asset: ${this.state.selectedUSDAsset.url}.`);
+        const message = {
+            event_type: "openStageRequest",
+            payload: {
+                url: this.state.selectedUSDAsset.url
+            }
+        };
+        AppStream.sendMessage(JSON.stringify(message));
+    };
+
+    _onSelectUSDAsset = (usdAsset) => {
+        console.log(`Asset selected: ${usdAsset.name}.`);
+        this.setState({ ...this.state, selectedUSDAsset: usdAsset }, () => {
+            this._openSelectedAsset();
+        });
+    };
+
+    _getChildren = (usdPrim = null) => {
+        console.log(`Requesting children for path: ${usdPrim ? usdPrim.path : '/World'}.`);
+        const message = {
+            event_type: "getChildrenRequest",
+            payload: {
+                prim_path: usdPrim ? usdPrim.path : '/World',
+                filters: ['USDGeom']
+            }
+        };
+        AppStream.sendMessage(JSON.stringify(message));
+    };
+
+    _makePickable = (usdPrims) => {
+        const paths = usdPrims.map(prim => prim.path);
+        console.log(`Sending request to make prims pickable: ${paths}.`);
+        const message = {
+            event_type: "makePrimsPickable",
+            payload: {
+                paths: paths,
+            }
+        };
+        AppStream.sendMessage(JSON.stringify(message));
+    };
+
+    _onSelectUSDPrims = (selectedUsdPrims) => {
+        console.log(`Sending request to select: ${selectedUsdPrims}.`);
+        this.setState({ ...this.state, selectedUSDPrims: selectedUsdPrims });
+        const paths = Array.from(selectedUsdPrims).map(obj => obj.path);
+        const message = {
+            event_type: "selectPrimsRequest",
+            payload: {
+                paths: paths
+            }
+        };
+        AppStream.sendMessage(JSON.stringify(message));
+
+        selectedUsdPrims.forEach(usdPrim => { this._onFillUSDPrim(usdPrim) });
+    };
+
+    _onStageReset = () => {
+        this.setState({ ...this.state, selectedUSDPrims: new Set() });
+        const selection_message = {
+            event_type: "selectPrimsRequest",
+            payload: {
+                paths: []
+            }
+        };
+        AppStream.sendMessage(JSON.stringify(selection_message));
+
+        const reset_message = {
+            event_type: "resetStage",
+            payload: {}
+        };
+        AppStream.sendMessage(JSON.stringify(reset_message));
+    };
+
+    _onFillUSDPrim = (usdPrim) => {
+        if (usdPrim !== null && "children" in usdPrim && !Array.isArray(usdPrim.children)) {
+            this._getChildren(usdPrim);
+        }
+    };
+
+    _findUSDPrimByPath = (path, array = this.state.usdPrims) => {
+        if (Array.isArray(array)) {
+            for (const obj of array) {
+                if (obj.path === path) {
+                    return obj;
+                }
+                if (obj.children && obj.children.length > 0) {
+                    const found = this._findUSDPrimByPath(path, obj.children);
+                    if (found) {
+                        return found;
+                    }
+                }
+            }
+        }
+        return null;
+    };
+
+    _handleCustomEvent = (event) => {
         if (!event) {
             return;
         }
-        // Streamed app notification of asset loaded.
+
+        // response received once a USD asset is fully loaded
         if (event.event_type === "openedStageResult") {
             if (event.payload.result === "success") {
+                this._queryLoadingState() 
                 console.log('Kit App communicates an asset was loaded: ' + event.payload.url);
                 this._getChildren(null); // Hide progress indicator
-            } else {
+            }
+            else {
                 console.error('Kit App communicates there was an error loading: ' + event.payload.url);
-                this._toggleLoadingState(false); // Hide progress indicator
             }
         }
-        // Progress amount notification.
+        
+        // response received from the 'loadingStateQuery' request
+        else if (event.event_type == "loadingStateResponse") {
+            // loadingStateRequest is used to poll Kit for proof of life.
+            // For the first loadingStateResponse we set isKitReady to true
+            // and run one more query to find out what the current loading state
+            // is in Kit
+            if (this.state.isKitReady === false) {
+                console.info("Kit is ready to load assets")
+                this.setState({ ...this.state, isKitReady: true })
+                this._queryLoadingState()
+            }
+            
+            else {
+                const usdAsset = this._getAsset(event.payload.url)
+                const isStageValid = !!(usdAsset.name && usdAsset.url)
+                
+                // set the USD Asset dropdown to the currently opened stage if it doesn't match
+                if (isStageValid && usdAsset !== undefined && this.state.selectedUSDAsset !== usdAsset)
+                    this.setState({ ...this.state, selectedUSDAsset: usdAsset })
+
+                // if the stage is empty, force-load the selected usd asset; the loading state is irrelevant
+                if (!event.payload.url)
+                    this._openSelectedAsset()
+                
+                // if a stage has been fully loaded and isn't a part of this application, force-load the selected stage
+                else if (!isStageValid && event.payload.loading_state === "idle"){
+                    console.log(`The loaded asset ${event.payload.url} is invalid.`)
+                    this._openSelectedAsset()
+                }
+                
+                // show stream and populate children if the stage is valid and it's done loading
+                if (isStageValid && event.payload.loading_state === "idle")
+                {
+                    this._getChildren()
+                    this.setState({ ...this.state, showStream: true, loadingText: "Asset loaded", showUI: true })
+                }
+            }
+        }
+        
+        // Loading progress amount notification.
         else if (event.event_type === "updateProgressAmount") {
             console.log('Kit App communicates progress amount.');
-            console.log(event.payload);
-            const progress = Math.round(Number(event.payload.progress) * 100.0);
-            if (progress > 0) {
-                this.setState({ loadingProgress: progress });
-            }
         }
-        // Progress activity notification.
+            
+        // Loading activity notification.
         else if (event.event_type === "updateProgressActivity") {
             console.log('Kit App communicates progress activity.');
-            console.log(event.payload);
-            this.setState({ loadingActivity: event.payload.text });
+            if (this.state.loadingText !== "Loading Asset...")
+                this.setState({ ...this.state, loadingText: "Loading Asset..." })
         }
-        // Selection changed because user made a selection in streamed viewport.
+            
+        // Notification from Kit about user changing the selection via the viewport.
         else if (event.event_type === "stageSelectionChanged") {
             console.log(event.payload.prims.constructor.name);
             if (!Array.isArray(event.payload.prims) || event.payload.prims.length === 0) {
                 console.log('Kit App communicates an empty stage selection.');
-                this.setState({ selectedUSDPrims: new Set() });
-            } else {
+                this.setState({ ...this.state, selectedUSDPrims: new Set() });
+            }
+            else {
                 console.log('Kit App communicates selection of a USDPrimType: ' + event.payload.prims.map((obj) => obj).join(', '));
                 const usdPrimsToSelect = new Set();
                 event.payload.prims.forEach((obj) => {
@@ -280,12 +393,7 @@ class Window extends React.Component {
                         usdPrimsToSelect.add(result);
                     }
                 });
-                this.setState({ selectedUSDPrims: usdPrimsToSelect });
-
-                // returned criteria ids
-                event.payload.criteria_ids.forEach((obj) => {
-                    console.log('returned criteria_id: ' + JSON.stringify(obj));
-                });
+                this.setState({ ...this.state, selectedUSDPrims: usdPrimsToSelect });
             }
         }
         // Streamed app provides children of a parent USDPrimType
@@ -295,13 +403,13 @@ class Window extends React.Component {
             const children = event.payload.children;
             const usdPrim = this._findUSDPrimByPath(prim_path);
             if (usdPrim === null) {
-                this.setState({ usdPrims: children });
-                this._toggleLoadingState(false);
-            } else {
-                usdPrim.children = children;
-                this.setState({ usdPrims: this.state.usdPrims });
+                this.setState({ ...this.state, usdPrims: children });
             }
-            if (Array.isArray(children)) {
+            else {
+                usdPrim.children = children;
+                this.setState({ ...this.state, usdPrims: this.state.usdPrims });
+            }
+            if (Array.isArray(children)){
                 this._makePickable(children);
             }
         }
@@ -310,14 +418,19 @@ class Window extends React.Component {
             console.log("onCustomEvent");
             console.log(JSON.parse(event.data).event_type);
         }
-    }
+    };
 
+    _handleAppStreamFocus = () => {
+        console.log('User is interacting in streamed viewer');
+    };
 
-    
+    _handleAppStreamBlur = () => {
+        console.log('User is not interacting in streamed viewer');
+    };
+
     render() {
         const sidebarWidth = 300;
         const headerHeight = 60;
-        
         const streamConfig = {
             source: StreamConfig.source,
             gfn: StreamConfig.gfn,
@@ -325,56 +438,70 @@ class Window extends React.Component {
         };
 
         return (
-            <div>
-               
-                {this.state.isLoadingAsset &&
-                    <div>
-                        <div>
-                            Loading {this.state.selectedUSDAsset.name} - {this.state.loadingProgress}%
-                            <div>File: {this.state.loadingActivity}</div>
-                        </div>
+            <div
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%'
+                }}
+                >
+                
+                {/* Loading text indicator */}
+                {!this.state.showStream &&
+                <div
+                    className="loading-indicator-container"
+                    style={{
+                        position: 'absolute',
+                        height: `calc(100% - ${headerHeight}px)`,
+                        width: `calc(100% - ${sidebarWidth}px)`,
+                    }}
+                >
+                    <div className="loading-indicator-label">
+                        {this.state.loadingText}
                     </div>
+                </div>
+                
                 }
-      
-
                 {/* Streamed app */}
                 <AppStream
                     streamConfig={streamConfig}
-                    onLoggedIn={(userId) => this.setState({ gfnUser: userId })}
-                    onStarted={() => this._onStreamStarted()}
+                    onLoggedIn={(userId) => this._onLoggedIn(userId)}
+                    onStarted={() => this._pollForKitReady()}
                     onFocus={() => this._handleAppStreamFocus()}
                     onBlur={() => this._handleAppStreamBlur()}
                     style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: `${headerHeight}px`,
                         height: `calc(100% - ${headerHeight}px)`,
                         width: `calc(100% - ${sidebarWidth}px)`,
-                        position:'relative',
-                        visibility: this.state.gfnUser ? 'visible' : 'hidden'
+                        visibility: this.state.showStream ? 'visible' : 'hidden'
                     }}
                     handleCustomEvent={(event) => this._handleCustomEvent(event)}
                 />
 
-                {this.state.gfnUser &&
-                    <>
-                        {/* USD Asset Selector */}
-                        <USDAsset
-                            usdAssets={this.state.usdAssets}
-                            selectedAssetUrl={this.state.selectedUSDAsset?.url}
-                            onSelectUSDAsset={(value) => this._onSelectUSDAsset(value)}
-                            width={sidebarWidth}
-                        />
-                        {/* USD Stage Listing */}
-                        <USDStage
-                            onSelectUSDPrims={(value) => this._onSelectUSDPrims(value)}
-                            selectedUSDPrims={this.state.selectedUSDPrims}
-                            fillUSDPrim={(value) => this._onFillUSDPrim(value)}
-                            onReset={() => this._onStageReset()}
-                            onFrame={() => this._onStageFrame()}
-                        />
-                    </>
+                {this.state.showUI &&
+                <>
+                {/* USD Asset Selector */}
+                <USDAsset
+                    usdAssets={this.state.usdAssets}
+                    selectedAssetUrl={this.state.selectedUSDAsset?.url}
+                    onSelectUSDAsset={(value) => this._onSelectUSDAsset(value)}
+                    width={sidebarWidth}
+                />
+                {/* USD Stage Listing */}
+                <USDStage
+                    ref={this.usdStageRef}
+                    width={sidebarWidth}
+                    usdPrims={this.state.usdPrims}
+                    onSelectUSDPrims={(value) => this._onSelectUSDPrims(value)}
+                    selectedUSDPrims={this.state.selectedUSDPrims}
+                    fillUSDPrim={(value) => this._onFillUSDPrim(value)}
+                    onReset={() => this._onStageReset()}
+                />
+                </>
                 }
             </div>
         );
     }
-}
-
-export default Window;
+};

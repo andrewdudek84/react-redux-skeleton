@@ -9,7 +9,7 @@
  * without an express license agreement from NVIDIA CORPORATION or
  * its affiliates is strictly prohibited.
  */
-.usdStageContainer {
+ .usdStageContainer {
     position: absolute;
     top: 155px;
     right: 0;
@@ -89,9 +89,9 @@
 
 .expand-toggle {
     cursor: pointer;
-    padding-right: 8px; 
-    user-select: none; 
-    display: inline-block;  
+    padding-right: 8px;  /* Provides space to click*/
+    user-select: none;  /* Prevents text selection on click*/
+    display: inline-block; /*  Ensures alignment with text*/
 }
 
 .expand-toggle.deselected {
@@ -100,11 +100,6 @@
 
 .expand-toggle.selected {
     color: #FFFFFF;
-}
-
-.button-container {
-    display: flex;
-    justify-content: space-between;
 }
 
 .usdStageButton {
@@ -117,8 +112,6 @@
     border-color: #76b900;
     border-width: 2px;
     cursor: pointer; /* Pointer cursor on hover */
-    float: center;
-    width: 45%;
 }
 
 .usdStageButton:hover {

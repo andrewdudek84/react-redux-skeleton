@@ -1,167 +1,178 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { AppStreamer, RagnarokConfig, GFNConfig, StreamEvent } from '@nvidia/omniverse-webrtc-streaming-library';
 import './AppStream.css';
 
-class AppStream extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this._requested = false;
-   
-    this.state = {
-      streamReady: false,
-    };
+const AppStream = (props) => {
+    const [streamReady, setStreamReady] = useState(false);
+    const [requested, setRequested] = useState(false);
     
+    useEffect(() => {
+        if (!requested) {
+            setRequested(true);
 
+            let streamConfig;
 
-  }
+            if (props.streamConfig.source === 'gfn') {
+                streamConfig = {
+                    source: 'gfn',
+                    catalogClientId: props.streamConfig.gfn.catalogClientId,
+                    clientId: props.streamConfig.gfn.clientId,
+                    cmsId: props.streamConfig.gfn.cmsId,
+                };
+            } else if (props.streamConfig.source === 'local') {
+                const server = props.streamConfig.local.server;
+                const width = 1920;
+                const height = 1080;
+                const fps = 60;
+                const url = `server=${server}&resolution=${width}:${height}&fps=${fps}&mic=0&cursor=free&autolaunch=true`;
 
-  componentDidMount() {
-    if (!this._requested) {
-      this._requested = true;
+                streamConfig = {
+                    source: 'local',
+                    videoElementId: 'remote-video',
+                    audioElementId: 'remote-audio',
+                    messageElementId: 'message-display',
+                    urlLocation: { search: url }
+                };
+            } else {
+                return;
+            }
 
-      let streamConfig;
-
-      if (this.props.streamConfig.source === 'gfn') {
-        streamConfig = {
-          source: 'gfn',
-          GFN: this.props.streamConfig.gfn,
-          catalogClientId: this.props.streamConfig.gfn.catalogClientId,
-          clientId: this.props.streamConfig.gfn.clientId,
-          cmsId: this.props.streamConfig.gfn.cmsId,
-        };
-      } else if (this.props.streamConfig.source === 'local') {
-        this.props.onLoggedIn('localUser');
-
-        const server = this.props.streamConfig.local.server;
-        const width = 1920;
-        const height = 1080;
-        const fps = 60;
-        const url = `server=${server}&resolution=${width}:${height}&fps=${fps}&mic=0&cursor=free&autolaunch=true`;
-
-        streamConfig = {
-          source: 'local',
-          videoElementId: 'remote-video',
-          audioElementId: 'remote-audio',
-          messageElementId: 'message-display',
-          urlLocation: { search: url }
-        };
-      } else {
-        return;
-      }
-   
-      try {        
-        AppStreamer.setup({
-          doReconnect: false,
-          streamConfig: streamConfig,
-          onUpdate: (message) => this._onUpdate(message),
-          onStart: (message) => this._onStart(message),
-          onCustomEvent: (message) => this._onCustomEvent(message),
-          authenticate: false,
-          onStop: function (message) {
-            console.log(message);
-          },
-          onTerminate: function (message) {
-            console.log(message);
-          },
-          onISSOUpdate: function (message) {
-            console.log(message);
-          }
-        })
-          .then((result) => {
-            console.info(result);
-          })
-          .catch((error) => {
-            console.error(error);
-          });
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }
-
-  componentDidUpdate(_prevProps, prevState) {
-    if (prevState.streamReady === false && this.state.streamReady === true) {
-      const player = document.getElementById("gfn-stream-player-video");
-
-      if (player) {
-        player.tabIndex = -1;
-        player.playsInline = true;
-        player.muted = true;
-
-        player.play().catch(e => console.error('Error playing video:', e));
-      }
-    }
-  }
-
-  static sendMessage(message) {
-   
-    AppStreamer.sendMessage(message);
-  }
-
-  _onStart(message) {
-    if (message.action === 'start' && message.status === 'success' && !this.state.streamReady) {
-      console.info('streamReady');
-      this.setState({ streamReady: true });
-      this.props.onStarted();
-    }
-
-    console.debug(message);
-  }
-
-  _onUpdate(message) {
-    try {
-      if (message.action === 'authUser' && message.status === 'success') {
-        if (typeof message.info === "string") {
-          this.props.onLoggedIn(message.info);
-        } else {
-          throw new Error("Not implemented.");
+            try {
+                AppStreamer.setup({
+                    streamConfig: streamConfig,
+                    onUpdate: (message) => _onUpdate(message),
+                    onStart: (message) => _onStart(message),
+                    onCustomEvent: (message) => _onCustomEvent(message),
+                    authenticate: false,
+                    nativeTouchEvents: true,
+                    doReconnect: true,
+                    onStop: function (message) {
+                        console.log(message);
+                    },
+                    onTerminate: function (message) {
+                        console.log(message);
+                    },
+                    onISSOUpdate: function (message) {
+                        console.log(message);
+                    }
+                })
+                .then((result) => {
+                    console.info(result);
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+            } catch (error) {
+                console.error(error);
+            }
         }
-      }
-    } catch (error) {
-      console.error(message);
-    }
-  }
+    }, [requested, props.streamConfig]);
 
-  _onCustomEvent(message) {
-    this.props.handleCustomEvent(message);
-  }
+    useEffect(() => {
+        if (!streamReady && streamReady) {
+            const player = document.getElementById("gfn-stream-player-video");
 
-  _onFocus() {
-    console.log("FOCUS");
-  }
+            if (player) {
+                player.tabIndex = -1;
+                player.playsInline = true;
+                player.muted = true;
 
-  _onBlur() {
-    console.log("BLUR");
-  }
+                player.play().catch(e => console.error('Error playing video:', e));
+            }
+        }
+    }, [streamReady]);
 
-  render() {
+    const _onStart = (message) => {
+        if (message.action === 'start' && message.status === 'success' && !streamReady) {
+            console.info('streamReady');
+            setStreamReady(true);
+            props.onStarted();
+        }
+
+        console.debug(message);
+    };
+
+    const _onUpdate = (message) => {
+        try {
+            if (message.action === 'authUser' && message.status === 'success') {
+                if (typeof message.info === "string") {
+                    props.onLoggedIn(message.info);
+                } else {
+                    throw new Error("Not implemented.");
+                }
+            }
+        } catch (error) {
+            console.error(message);
+        }
+    };
+
+    const _onCustomEvent = (message) => {
+        props.handleCustomEvent(message);
+    };
 
     return (
-
-      <div key='stream-canvas' id='main-div'>
-    
-        <div id='aspect-ratio-div' style={this.props.style} onFocus={this._onFocus} onBlur={this._onBlur}>
-          {this.props.streamConfig.source === 'gfn' && (
-            <div>
-              <video id="gfn-stream-player-video" />
-              <audio id="gfn-stream-player-audio" />
-              <div id="message-display" />
+        <div
+            key={'stream-canvas'}
+            id={'main-div'}
+            style={{
+                visibility: streamReady ? 'visible' : 'hidden',
+                outline: 'none',
+                ...props.style
+            }}
+        >
+            <div
+                id={'aspect-ratio-div'}
+                tabIndex={0}
+                onFocus={props.onFocus}
+                onBlur={props.onBlur}
+                style={{
+                    position: 'relative',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    paddingBottom: '56.25%',
+                    outline: 'none'
+                }}
+            >
+                {props.streamConfig.source === 'gfn' &&
+                    <div
+                        id="view"
+                        style={{
+                            backgroundColor: '#dddddd',
+                            display: 'flex', justifyContent: 'space-between',
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative',
+                            top: 0,
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            outline: 'none'
+                        }}
+                    />}
+                {props.streamConfig.source === 'local' &&
+                    <>
+                        <video
+                            key={'video-canvas'}
+                            id={'remote-video'}
+                            style={{
+                                position: 'relative',
+                                width: '100%',
+                                height: '100%',
+                                outline: 'none'
+                            }}
+                            tabIndex={-1}
+                            playsInline
+                            muted
+                            autoPlay />
+                        <audio id="remote-audio" muted></audio>
+                        <h3 style={{ visibility: 'hidden' }} id="message-display">...</h3>
+                    </>
+                }
             </div>
-          )}
-        
-          {this.props.streamConfig.source === 'local' && (
-            <div>
-              <video key='video-canvas' id="remote-video" playsInline muted autoPlay></video>
-              <audio id="remote-audio" muted></audio>
-              <div id="message-display"></div>
-            </div>
-          )}
         </div>
-      </div>
     );
-  }
-}
+};
 
 export default AppStream;
-

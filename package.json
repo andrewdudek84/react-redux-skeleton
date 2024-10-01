@@ -26,10 +26,10 @@
     },
     "devDependencies": {
         "react-scripts": "^5.0.1",
-        "@nvidia/omniverse-webrtc-streaming-library": "^2.1.13"
+        "@nvidia/omniverse-webrtc-streaming-library": "^2.7.6"
     },
     "scripts": {
-        "start": "set PORT=8080 && react-scripts start",
+        "start": "set PORT=5173 && react-scripts start",
         "build": "react-scripts build",
         "test": "react-scripts test",
         "eject": "react-scripts eject"
