@@ -7,6 +7,7 @@ import AssetAnnotation from "./AssetAnnotation";
 
 import { models } from 'powerbi-client';
 import { PowerBIEmbed } from 'powerbi-client-react';
+import Window from "../kit-app-streaming/Window";
 
 
 
@@ -69,24 +70,18 @@ const GlobalState = (props) => {
     setBusy(false)
   };
 
-
-useEffect(()=>
-  updateMSALInfo({
-    "userName": activeAccount.name,
-    "authToken": activeAccount.idToken
-  }) , []);
-
-useEffect(()=>
-  updateUSDStorage({
-    "url": "http://storage...",
-    "sasToken": "sas token..."
-  }), []);
-
   useEffect(() => {
+      updateUSDStorage({
+        "url": "http://storage...",
+        "sasToken": "sas token..."
+      })
+      updateMSALInfo({
+        "userName": activeAccount.name,
+        "authToken": activeAccount.idToken
+      })
       setBusy(true)
       setToken()
-    }
-  ,[]);
+    },[]);
 
   return (
     <div>
@@ -165,14 +160,13 @@ useEffect(()=>
                 <div className="border-div">Loading</div>
               ) : (
 
-               
                 <div className="border-div"> 
                     <span>{token}</span>
                     <PowerBIEmbed
                         embedConfig = {{
                             type: 'report',   // Since we are reporting a BI report, set the type to report
-                            id: '286681f1-fa0e-462b-96b8-d0a391465e50', // Add the report Id here
-                            embedUrl: 'https://msit.powerbi.com/reportEmbed?reportId=286681f1-fa0e-462b-96b8-d0a391465e50&ctid=72f988bf-86f1-41af-91ab-2d7cd011db47', // Add the embed url here
+                            id: '7a452715-3141-498a-8e7c-104ef8f80438', // Add the report Id here
+                            embedUrl: 'https://app.powerbi.com/reportEmbed?reportId=7a452715-3141-498a-8e7c-104ef8f80438&ctid=d2e5ac16-7068-4b2d-995b-3924af59cc7a', // Add the embed url here
                             accessToken:token,
                             tokenType: models.TokenType.Aad, // Since we are using an Azure Active Directory access token, set the token type to Aad
                             settings: {
@@ -190,7 +184,7 @@ useEffect(()=>
                             new Map([
                                 ['loaded', function () {console.log('Report loaded');}],
                                 ['rendered', function () {console.log('Report rendered');}],
-                                ['error', function (event) {alert(JSON.stringify(event.detail));}],
+                                ['error', function (event) {console.log(event.detail);}],
                                 ['visualClicked', () => console.log('visual clicked')],
                                 ['pageChanged', (event) => console.log(event)],
                             ])
@@ -214,7 +208,7 @@ useEffect(()=>
 
         <h2>Kit App Streaming</h2>
         <div className="border-div">
-
+          <Window/>
         </div>
       
     </div>
