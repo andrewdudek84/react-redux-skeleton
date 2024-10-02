@@ -1,180 +1,142 @@
-import { factories, models, service } from 'powerbi-client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect,useState } from "react";
+import { useMsal } from '@azure/msal-react';
+import { models } from 'powerbi-client';
+import { PowerBIEmbed } from 'powerbi-client-react';
 
-const powerbi = new service.Service(factories.hpmFactory, factories.wpmpFactory, factories.routerFactory);
+const EmbedPowerBI = (props) => {
 
-export function UUID() {
-  const nbr = Math.random();
-  let randStr = '';
-  do {
-    randStr += nbr.toString(16).substr(2);
-  } while (randStr.length < 30);
+  const { selectAsset,unselectAllAsset,powerBIVisualName, powerBIVisualReportId,powerBIVisualReportEmbedURL,selectedAssetIds } = props;
+  const [isBusy, setBusy] = useState(true)
+  const { instance } = useMsal();
+  const activeAccount = instance.getActiveAccount();
+  const [token, setTokenVal] = useState();
 
-  // tslint:disable-next-line: no-bitwise
-  return [
-    randStr.substr(0, 8), 
-    '-', 
-    randStr.substr(8, 4), 
-    '-4', 
-    randStr.substr(12, 3), 
-    '-', 
-    (((nbr * 4) | 0) + 8).toString(16),
-    randStr.substr(15, 3), 
-    '-', 
-    randStr.substr(18, 12),
-  ].join('');
-}
-
-export const getIdentity = (dataPoints, column) => {
-  let val;
-  if (dataPoints) {
-    for (const data of dataPoints) {
-      for (const identity of data.identity) {
-        if (identity.target.column === column)
-          val = identity.equals;
-      }
-    }
-  }
-  return val;
-}
-
-export const getValue = (dataPoints, column) => {
-  let val;
-  if (dataPoints) {
-    for (const data of dataPoints) {
-      for (const v of data.values) {
-        if (v.target.column === column)
-          val = v.formattedValue;
-      }
-    }
-  }
-  return val;
-}
-
-export function substituteParams(url, params) {
-  if (params && url) {
-    url = url.replaceAll('&', '&');   // Be defensive about encoding
-    for (const p in params) {
-      let pattern = '${' + p + '}';
-      let newUrl = url.replace(pattern, params[p]).replaceAll(pattern, params[p]);
-      if (newUrl !== url && !params[p]) {
-        newUrl = '';
-      }
-      url = newUrl;
-    }
-  }
-  return url || '';
-}
-
-export const EmbedPowerBI = ({ className, onDataSelected, onButtonClicked, onLoaded, embedUrl, hideSensitivity, hideRefresh, transparentBackground }) => {
-  const onDataSelectedRef = useRef();
-  const onButtonClickedRef = useRef();
-  const frameId = useRef(UUID());
-  const prevUrlRef = useRef('');
-  const dontUseREST = embedUrl && embedUrl.toLowerCase().indexOf('powerbi.com') < 0;  // Don't use REST API for non-PBI urls
-  const [alternateEmbedMethod, setAlternateEmbedMethod] = useState(dontUseREST);
-  const reportRef = useRef(null);
-
-  onDataSelectedRef.current = onDataSelected;
-  onButtonClickedRef.current = onButtonClicked;
-
-  if (dontUseREST && !alternateEmbedMethod) {
-    setAlternateEmbedMethod(true);
-  }
-
-  const [reportConfig, setReportConfig] = useState({
-    type: 'report',
-    embedUrl: undefined,
-    tokenType: models.TokenType.Aad,
-    accessToken: undefined,
-    settings: {
-      navContentPaneEnabled: false,
-      background: transparentBackground ? models.BackgroundType.Transparent : undefined,
-      panes: {
-        filters: {
-          expanded: false,
-          visible: false,
-        },
-      },
-    },
-  });
-
-  const onDataSelect = (e) => {
-    if (onDataSelectedRef.current) {
-      onDataSelectedRef.current({ detail: e.detail });
-    }
-  };
-
-  const onButtonClick = (e) => {
-    if (onButtonClickedRef.current) {
-      onButtonClickedRef.current({ detail: e.detail });
-    }
-  };
-
-  useEffect(() => {
-    if (!alternateEmbedMethod) {
-      if (prevUrlRef.current !== embedUrl) {
-        prevUrlRef.current = embedUrl;
-        const url = embedUrl.replace('&autoAuth=true', '');
-        if (url) {
-
-            const config = {
-              ...reportConfig,
-              embedUrl: url,
-              accessToken: undefined,
-            };
-
-            setReportConfig(config);
-
-        } else {
-          const config = {
-            ...reportConfig,
-            embedUrl: '',
-          };
-
-          setReportConfig(config);
-        }
-      }
-    }
-  }, [embedUrl, alternateEmbedMethod, prevUrlRef, reportConfig]);
-
-  useEffect(() => {
-    if (!alternateEmbedMethod) {
-      try {
-        let report = null;
-        const iframe = document.getElementById(frameId.current);
-        if (reportConfig.embedUrl && reportConfig.embedUrl.toLowerCase().indexOf('powerbi.com') > 0 && iframe) {
-          report = powerbi.embed(iframe, reportConfig);
-          reportRef.current = report;
-          if (!report.iframeLoaded) {
-            report.off('dataSelected');
-            report.on('dataSelected', (e) => onDataSelect(e));
-            report.off('buttonClicked');
-            report.on('buttonClicked', (e) => onButtonClick(e));
-            if (onLoaded) {
-              report.off('loaded');
-              report.on('loaded', onLoaded);
-            }
-          }
-        }
-      } catch (e) {
-        console.log(e);
-      }
-    }
-
-    return () => {
-      // Cleanup if necessary
+  const setPowerBIEmbededToken = async () => {
+    const request = {
+      scopes: ['https://analysis.windows.net/powerbi/api/Report.Read.All'],
+      account: activeAccount
     };
-  }, [reportConfig, alternateEmbedMethod]);
+    
+    const authResult = await instance.acquireTokenSilent(request);
+    setTokenVal(authResult.accessToken)
+    setBusy(false)
+  };
+
+
+  useEffect(() => {
+      setBusy(true)
+      setPowerBIEmbededToken()
+    },[]);
+
+    const basicFilter = {
+      $schema: "http://powerbi.com/product/schema#basic",
+      target: {
+        table: "Assets",
+        column: "Asset"
+      },
+      operator: "In",
+      values:  selectedAssetIds,
+      filterType: models.FilterType.BasicFilter
+    };
+
+    const setSlicer =()=>{
+      if(window.report){
+        window.report.getPages().then(pages => {
+          pages[0].getVisuals().then(visuals => {
+              const slicers = visuals.find(visual => visual.type === 'slicer');
+              for (let x = 0; x < visuals.length; x++) {
+                if (visuals[x].type === 'slicer' && visuals[x].name==powerBIVisualName) {
+                    if(basicFilter.values.length>0)
+                      visuals[x].setSlicerState({ 'filters': [basicFilter] });
+                    else
+                      visuals[x].setSlicerState({ 'filters': [] });
+                }
+              }
+          });
+        });
+      }
+    };
 
   return (
-    <div className={className}>
-      <iframe
-        id={frameId.current}
-        title="Power BI Report"
-        style={{ border: 'none', width: '100%', height: '100%' }}
-      />
+    
+      <div>
+
+        {setSlicer()}
       
-    </div>
-  );
-};
+        {isBusy ? (
+                <div className="border-div">Loading</div>
+              ) : (
+
+                <div className="border-div"> 
+                    <PowerBIEmbed
+                        embedConfig = {{
+                            type: 'report',   // Since we are reporting a BI report, set the type to report
+                            id: powerBIVisualReportId, // Add the report Id here
+                            embedUrl: powerBIVisualReportEmbedURL, // Add the embed url here
+                            accessToken:token,
+                            tokenType: models.TokenType.Aad, // Since we are using an Azure Active Directory access token, set the token type to Aad
+                            settings: {
+                                panes: {
+                                    filters: {
+                                        expanded: false,
+                                        visible: true
+                                    },
+                                    pageNavigation: {
+                                      visible: false
+                                    }
+                                },
+                                background: models.BackgroundType.Transparent,
+                            }
+                        }}
+
+                        eventHandlers = {
+                            new Map([
+                                ['loaded', function () {
+
+                                  setSlicer()
+
+                                  window.report.on('visualClicked', async function () {
+                                    window.report.getPages().then(pages => {
+                                      pages[0].getVisuals().then(async visuals => {
+                                          const slicers = visuals.find(visual => visual.type === 'slicer');
+                                          for (let x = 0; x < visuals.length; x++) {
+                                           
+                                            if (visuals[x].type === 'slicer' && visuals[x].name==powerBIVisualName) {
+                                                
+                                              let state = await visuals[x].getSlicerState();
+                                                
+                                                unselectAllAsset()
+
+                                                if(state.filters.length>0){
+                                                  state.filters[0].values.forEach((val, index) => {
+                                                    selectAsset(val)
+                                                  });
+                                                }
+
+                                            }
+                                          }
+                                      });
+                                    });
+                                  });
+                                }],
+                                ['rendered', function () {console.log('Report rendered');}],
+                                ['error', function (event) {console.log(event.detail);}],
+                            ])
+                        }
+
+                        cssClassName = { "bi-embedded" }
+
+                        getEmbeddedComponent = { (embeddedReport) => {
+                            window.report = embeddedReport; 
+                            
+                        }}
+                    />
+
+                </div>
+              )};
+              
+            </div>
+          );
+        };
+
+export default EmbedPowerBI;
