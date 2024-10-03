@@ -25,15 +25,19 @@
   width:100%
 }
 
-.border-div{
-  margin:12px;
-  border:1px solid #000;
-  width:80%;
-  height:600px;
+.pbi-div{
+  padding:12px;
+  width:40%;
+  float:left
+}
+.streaming-div{
+  padding:12px;
+  width:60%;
+  height:1200px;
+  float:left
 }
 
 .box-div {
-  border:1px solid #ccc;
   width:200px;
   margin:12px;
   padding:12px;

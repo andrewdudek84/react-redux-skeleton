@@ -17,7 +17,7 @@ export const NavigationBar = () => {
         <>
             <Navbar bg="primary" variant="dark" className="navbarStyle">
                 <a className="navbar-brand" href="/">
-                    MSFT / NVIDIA Kit App Streaming / PBI Starter App
+                    Fluid Station - Contoso
                 </a>
                 <AuthenticatedTemplate>
                     <div className="collapse navbar-collapse justify-content-end">

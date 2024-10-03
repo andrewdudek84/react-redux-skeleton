@@ -14,15 +14,7 @@ export const PageLayout = (props) => {
             <br />
             <AuthenticatedTemplate>
                 <Provider store={store}>
-            
-                    <div className="messsages-div">
-
-                        <h2>Redux - Global State</h2>
-                        <GlobalState />
-
-                      
-                    </div>
-
+                    <GlobalState />
                 </Provider>
             </AuthenticatedTemplate>
         </>

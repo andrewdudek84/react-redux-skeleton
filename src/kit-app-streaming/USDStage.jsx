@@ -29,18 +29,36 @@ const USDStage = (props) => {
     const handleListClick = (obj, event) => {
         event.stopPropagation();
         const newSelectedItems = new Set(props.selectedUSDPrims);
+
         if (newSelectedItems.has(obj)) {
+            if(obj.path=="/World/Cone")
+                props.unselectAsset("asset1")
+            if(obj.path=="/World/Cube")
+                props.unselectAsset("asset2")
+            if(obj.path=="/World/Sphere")
+                props.unselectAsset("asset3")
             newSelectedItems.delete(obj);
         } else {
+            if(obj.path=="/World/Cone")
+                props.selectAsset("asset1")
+            if(obj.path=="/World/Cube")
+                props.selectAsset("asset2")
+            if(obj.path=="/World/Sphere")
+                props.selectAsset("asset3")
             newSelectedItems.add(obj);
         }
+
         props.onSelectUSDPrims(newSelectedItems);
     };
 
     const renderList = (usdPrims) => {
+
+    
         if (usdPrims === null || !Array.isArray(usdPrims)) {
             return;
         }
+
+       
         return usdPrims.map((obj, index) => {
             const isLeaf = !obj.children || obj.children.length === 0;
             const isOpen = expandedIds.has(obj.path);
@@ -72,18 +90,13 @@ const USDStage = (props) => {
     };
 
     const onReset = () => {
+        props.unselectAllAsset()
         props.onReset();
     };
 
     return (
-        <div className="usdStageContainer" style={{ width: props.width }}>
-            <div className="usdStageHeader">
-                {'USD Stage'}
-                <button className="usdStageButton" onClick={onReset}>Reset</button>
-            </div>
-            <ul className="list-container">
-                {renderList(props.usdPrims)}
-            </ul>
+        <div>
+
         </div>
     );
 };

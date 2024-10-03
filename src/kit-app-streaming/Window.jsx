@@ -15,6 +15,7 @@ import AppStream from './AppStream'; // Ensure .tsx extension if needed
 import StreamConfig from '../stream.config.json';
 import USDAsset from "./USDAsset";
 import USDStage from "./USDStage";
+import { AppStreamer } from '@nvidia/omniverse-webrtc-streaming-library';
 
 export default class Window extends Component {
     constructor(props) {
@@ -45,7 +46,7 @@ export default class Window extends Component {
             event_type: "loadingStateQuery",
             payload: {}
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     }
 
     async _pollForKitReady() {
@@ -87,7 +88,7 @@ export default class Window extends Component {
                 url: this.state.selectedUSDAsset.url
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     }
 
     _onSelectUSDAsset(usdAsset) {
@@ -106,7 +107,7 @@ export default class Window extends Component {
                 filters: ['USDGeom']
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     }
 
     _makePickable(usdPrims) {
@@ -118,7 +119,7 @@ export default class Window extends Component {
                 paths: paths,
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     }
 
     _onSelectUSDPrims(selectedUsdPrims) {
@@ -131,7 +132,7 @@ export default class Window extends Component {
                 paths: paths
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
 
         selectedUsdPrims.forEach(usdPrim => { this._onFillUSDPrim(usdPrim) });
     }
@@ -144,13 +145,13 @@ export default class Window extends Component {
                 paths: []
             }
         };
-        AppStream.sendMessage(JSON.stringify(selection_message));
+        AppStreamer.sendMessage(JSON.stringify(selection_message));
 
         const reset_message = {
             event_type: "resetStage",
             payload: {}
         };
-        AppStream.sendMessage(JSON.stringify(reset_message));
+        AppStreamer.sendMessage(JSON.stringify(reset_message));
     }
 
     _onFillUSDPrim(usdPrim) {
@@ -181,7 +182,7 @@ export default class Window extends Component {
             event_type: "loadingStateQuery",
             payload: {}
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     };
 
     _pollForKitReady = async () => {
@@ -209,6 +210,7 @@ export default class Window extends Component {
         this.setState({ ...this.state, loadingText: "Waiting for stream to begin" });
     };
 
+
     _openSelectedAsset = () => {
         this.setState({ ...this.state, loadingText: "Loading Asset...", showStream: false });
         this.setState({ ...this.state, usdPrims: [], selectedUSDPrims: new Set() });
@@ -220,7 +222,7 @@ export default class Window extends Component {
                 url: this.state.selectedUSDAsset.url
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     };
 
     _onSelectUSDAsset = (usdAsset) => {
@@ -239,7 +241,7 @@ export default class Window extends Component {
                 filters: ['USDGeom']
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     };
 
     _makePickable = (usdPrims) => {
@@ -251,7 +253,7 @@ export default class Window extends Component {
                 paths: paths,
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
     };
 
     _onSelectUSDPrims = (selectedUsdPrims) => {
@@ -264,7 +266,7 @@ export default class Window extends Component {
                 paths: paths
             }
         };
-        AppStream.sendMessage(JSON.stringify(message));
+        AppStreamer.sendMessage(JSON.stringify(message));
 
         selectedUsdPrims.forEach(usdPrim => { this._onFillUSDPrim(usdPrim) });
     };
@@ -277,13 +279,13 @@ export default class Window extends Component {
                 paths: []
             }
         };
-        AppStream.sendMessage(JSON.stringify(selection_message));
+        AppStreamer.sendMessage(JSON.stringify(selection_message));
 
         const reset_message = {
             event_type: "resetStage",
             payload: {}
         };
-        AppStream.sendMessage(JSON.stringify(reset_message));
+        AppStreamer.sendMessage(JSON.stringify(reset_message));
     };
 
     _onFillUSDPrim = (usdPrim) => {
@@ -380,6 +382,8 @@ export default class Window extends Component {
         // Notification from Kit about user changing the selection via the viewport.
         else if (event.event_type === "stageSelectionChanged") {
             console.log(event.payload.prims.constructor.name);
+            this.props.unselectAllAsset();
+
             if (!Array.isArray(event.payload.prims) || event.payload.prims.length === 0) {
                 console.log('Kit App communicates an empty stage selection.');
                 this.setState({ ...this.state, selectedUSDPrims: new Set() });
@@ -387,12 +391,22 @@ export default class Window extends Component {
             else {
                 console.log('Kit App communicates selection of a USDPrimType: ' + event.payload.prims.map((obj) => obj).join(', '));
                 const usdPrimsToSelect = new Set();
+
                 event.payload.prims.forEach((obj) => {
                     const result = this._findUSDPrimByPath(obj);
                     if (result !== null) {
                         usdPrimsToSelect.add(result);
+
+                        if(result.path=="/World/Cone")
+                            this.props.selectAsset("asset1")
+                        if(result.path=="/World/Cube")
+                            this.props.selectAsset("asset2")
+                        if(result.path=="/World/Sphere")
+                            this.props.selectAsset("asset3")
                     }
+
                 });
+
                 this.setState({ ...this.state, selectedUSDPrims: usdPrimsToSelect });
             }
         }
@@ -419,6 +433,7 @@ export default class Window extends Component {
             console.log(JSON.parse(event.data).event_type);
         }
     };
+
 
     _handleAppStreamFocus = () => {
         console.log('User is interacting in streamed viewer');
@@ -491,6 +506,10 @@ export default class Window extends Component {
                 />
                 {/* USD Stage Listing */}
                 <USDStage
+                    selectAsset={this.props.selectAsset}
+                    unselectAsset={this.props.unselectAsset}
+                    unselectAllAsset={this.props.unselectAllAsset}
+                    selectedAssetIds={this.props.selectedAssetIds}
                     ref={this.usdStageRef}
                     width={sidebarWidth}
                     usdPrims={this.state.usdPrims}

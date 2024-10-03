@@ -10,8 +10,10 @@ const USDAsset = (props) => {
 
     const handleSelectChange = (event) => {
         const selectedIndex = parseInt(event.target.value, 10);
+        
         setSelectedUSDAssetIndex(selectedIndex);
         if (props.onSelectUSDAsset) {
+           
             props.onSelectUSDAsset(props.usdAssets[selectedIndex]);
         }
     };
@@ -38,13 +40,7 @@ const USDAsset = (props) => {
     };
 
     return (
-        <div className="usdAssetContainer" style={{ width: props.width }}>
-            <div className="usdAssetHeader">
-                {'USD Asset'}
-            </div>
-            <div className="usdAssetSelectorContainer">
-                {renderSelector()}
-            </div>
+        <div>
         </div>
     );
 };

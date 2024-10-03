@@ -23,7 +23,7 @@ const initialState = {
       "message": "please wait..."
     },
   },
-  "selectedAssetIds": ["asset1", "asset2"],
+  "selectedAssetIds": [],
   "assetAnnotations": [{
     "id": "asset2",
     "status": "warning",

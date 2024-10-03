@@ -33,6 +33,7 @@ const AppStream = (props) => {
                     messageElementId: 'message-display',
                     urlLocation: { search: url }
                 };
+
             } else {
                 return;
             }
@@ -83,6 +84,7 @@ const AppStream = (props) => {
     }, [streamReady]);
 
     const _onStart = (message) => {
+        
         if (message.action === 'start' && message.status === 'success' && !streamReady) {
             console.info('streamReady');
             setStreamReady(true);
@@ -117,7 +119,7 @@ const AppStream = (props) => {
             style={{
                 visibility: streamReady ? 'visible' : 'hidden',
                 outline: 'none',
-                ...props.style
+                width:'100%'
             }}
         >
             <div
@@ -127,11 +129,7 @@ const AppStream = (props) => {
                 onBlur={props.onBlur}
                 style={{
                     position: 'relative',
-                    top: 0,
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    paddingBottom: '56.25%',
+                    width:'100%',
                     outline: 'none'
                 }}
             >
