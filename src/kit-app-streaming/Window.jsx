@@ -24,12 +24,13 @@ export default class Window extends Component {
         // list of selectable USD assets
         const usdAssets = [
             { name: "Sample 1", url: "./samples/stage01.usd" },
-            { name: "Sample 2", url: "./samples/stage02.usd" }
+            { name: "Sample 2", url: "./samples/stage02.usd" },
+            { name: "Sample 3", url: "./samples/contoso_line.usda" }
         ];
 
         this.state = {
             usdAssets: usdAssets,
-            selectedUSDAsset: usdAssets[0],
+            selectedUSDAsset: usdAssets[2],
             usdPrims: [],
             selectedUSDPrims: new Set(),
             isKitReady: false,

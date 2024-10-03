@@ -15,7 +15,7 @@ export const NavigationBar = () => {
 
     return (
         <>
-            <Navbar bg="primary" variant="dark" className="navbarStyle">
+            <Navbar className="navbarStyle">
                 <a className="navbar-brand" href="/">
                     Fluid Station - Contoso
                 </a>

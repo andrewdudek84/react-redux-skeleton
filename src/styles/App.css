@@ -1,6 +1,29 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
 .navbarStyle {
     padding: 0.5rem 1rem !important;
+    background-color: #111;
+    position: absolute;
+    top:0px;
+    left:0px;
+    right:0;
+    height:58px;
+    z-index:3;
 }
+.navbar-brand{color:#fff!important}
 
 .navbarButton {
     color: #fff !important;
@@ -9,10 +32,6 @@
 
 .iconText {
     margin: 0 0.5rem;
-}
-
-.navbarStyle {
-    padding: 0.5rem 1rem;
 }
 
 .navbarButton {
@@ -26,15 +45,20 @@
 }
 
 .pbi-div{
-  padding:12px;
-  width:40%;
-  float:left
+  top:56px;
+  left:0px;
+  right:60%;
+  bottom:0px;
+  position: absolute;
+  z-index:2;
 }
 .streaming-div{
-  padding:12px;
-  width:60%;
-  height:1200px;
-  float:left
+  top:55px;
+  left:0px;
+  right:0px;
+  bottom:0px;
+  position: absolute;
+  z-index:1;
 }
 
 .box-div {
