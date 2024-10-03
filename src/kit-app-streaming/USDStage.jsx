@@ -32,19 +32,19 @@ const USDStage = (props) => {
 
         if (newSelectedItems.has(obj)) {
             if(obj.path=="/World/Cone")
-                props.unselectAsset("asset1")
+                props.unselectAsset("'valve_1'")
             if(obj.path=="/World/Cube")
-                props.unselectAsset("asset2")
+                props.unselectAsset("'valve_2'")
             if(obj.path=="/World/Sphere")
-                props.unselectAsset("asset3")
+                props.unselectAsset("'valve_3'")
             newSelectedItems.delete(obj);
         } else {
             if(obj.path=="/World/Cone")
-                props.selectAsset("asset1")
+                props.selectAsset("'valve_1'")
             if(obj.path=="/World/Cube")
-                props.selectAsset("asset2")
+                props.selectAsset("'valve_2'")
             if(obj.path=="/World/Sphere")
-                props.selectAsset("asset3")
+                props.selectAsset("'valve_3'")
             newSelectedItems.add(obj);
         }
 

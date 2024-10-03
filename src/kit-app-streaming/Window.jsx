@@ -398,11 +398,11 @@ export default class Window extends Component {
                         usdPrimsToSelect.add(result);
 
                         if(result.path=="/World/Cone")
-                            this.props.selectAsset("asset1")
+                            this.props.selectAsset("'valve_1'")
                         if(result.path=="/World/Cube")
-                            this.props.selectAsset("asset2")
+                            this.props.selectAsset("'valve_2'")
                         if(result.path=="/World/Sphere")
-                            this.props.selectAsset("asset3")
+                            this.props.selectAsset("'valve_3'")
                     }
 
                 });

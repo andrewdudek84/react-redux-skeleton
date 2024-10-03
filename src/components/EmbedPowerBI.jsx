@@ -5,7 +5,7 @@ import { PowerBIEmbed } from 'powerbi-client-react';
 
 const EmbedPowerBI = (props) => {
 
-  const { selectAsset, unselectAllAsset, powerBIVisualName, powerBIVisualReportId, powerBIVisualReportEmbedURL, selectedAssetIds } = props;
+  const { selectAsset, unselectAllAsset, powerBIVisualName,powerBITable,powerBIColumn, powerBIVisualReportId, powerBIVisualReportEmbedURL, selectedAssetIds } = props;
   const [isBusy, setBusy] = useState(true)
   const { instance } = useMsal();
   const activeAccount = instance.getActiveAccount();
@@ -30,8 +30,8 @@ const EmbedPowerBI = (props) => {
   const basicFilter = {
     $schema: "http://powerbi.com/product/schema#basic",
     target: {
-      table: "Assets",
-      column: "Asset"
+      table: powerBITable,
+      column: powerBIColumn
     },
     operator: "In",
     values: selectedAssetIds,

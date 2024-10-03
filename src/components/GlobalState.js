@@ -65,7 +65,9 @@ const GlobalState = (props) => {
         selectAsset={selectAsset}
         unselectAllAsset={unselectAllAsset}
         selectedAssetIds={props.state.selectedAssetIds}
-        powerBIVisualName='73f376c3cf388d22d921'
+        powerBIVisualName='544a19b2352fd10bab76'
+        powerBITable='current_state'
+        powerBIColumn='module'
         powerBIVisualReportId='a3c5c989-ed58-4737-bb2a-67ee7a74385f'
         powerBIVisualReportEmbedURL='https://app.powerbi.com/reportEmbed?reportId=a3c5c989-ed58-4737-bb2a-67ee7a74385f&ctid=d2e5ac16-7068-4b2d-995b-3924af59cc7a'
       />
